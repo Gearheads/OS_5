@@ -34,7 +34,7 @@ int localcd(int argc, char **argv) {
  *   an error here since chances are that we really want to exit the process,
  *   even if the syntax is wrong.
  */
-int localexit(int argc, char **argv) {
+void localexit(int argc, char **argv) {
 	if(argc<2){
 		exit(0);
 	}
