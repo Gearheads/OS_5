@@ -35,7 +35,12 @@ int localcd(int argc, char **argv) {
  *   even if the syntax is wrong.
  */
 int localexit(int argc, char **argv) {
-    return 0;
+	if(argc<2){
+		exit(0);
+	}
+	else{
+		exit(atoi(argv[1]));	
+	}
 }
 
 /**
