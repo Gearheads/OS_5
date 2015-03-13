@@ -25,7 +25,6 @@ int localcd(int argc, char **argv) {
 }
 
 /**
- * 
  * exit [value]
  *   The exit command causes the shell process to exit by calling
  *   the exit library function (which, in turn, calls the _exit system call).
@@ -37,6 +36,13 @@ int localcd(int argc, char **argv) {
  */
 int localexit(int argc, char **argv) {
     return 0;
+}
+
+/**
+ * Parses the command that was readin from the terminal
+ */
+void parseCommand(char *line) {
+
 }
 
 /**
@@ -62,28 +68,28 @@ int localexit(int argc, char **argv) {
  */
 int startShell() {
     char *line = NULL;
-        size_t size = 0;
-        ssize_t read;
-        printf("$ ");
-        while((read = getline(&line, &size, stdin)) != -1) {
-            parseCommand(line);
-            if (isatty(0)) {
-                fputs(line, stderr);
-                printf("the standard input is from a terminal\n");
-            } 
-            else {
-                printf("the standard input is NOT from a terminal\n");
-            }
-            if (isatty(1)) {
-                printf("the standard output is to a terminal\n");
-            }
-            else {
-                printf("the standard input is NOT to a terminal\n");
-            }
-            printf("$ ");
+    size_t size = 0;
+    ssize_t read;
+    printf("$ ");
+    while((read = getline(&line, &size, stdin)) != -1) {
+        parseCommand(line);
+        if (isatty(0)) {
+            fputs(line, stderr);
+            printf("the standard input is from a terminal\n");
+        } 
+        else {
+            printf("the standard input is NOT from a terminal\n");
         }
-        printf("\n");
-        return 0;
+        if (isatty(1)) {
+            printf("the standard output is to a terminal\n");
+        }
+        else {
+            printf("the standard input is NOT to a terminal\n");
+        }
+        printf("$ ");
+    }
+    printf("\n");
+    return 0;
 }
 
 /**
