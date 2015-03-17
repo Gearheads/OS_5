@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+struct builtins {
+    char *name; /* name of function */
+    int (*f)(); /* function to execute for the built-in command */
+};
+
 /**
  * cd [dirname]
  *   The cd command changes the current working directory to that
