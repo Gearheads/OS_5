@@ -21,6 +21,23 @@
  *   reading the envrionment variable HOME via getenv("HOME").
  */
 int localcd(int argc, char **argv) {
+	if(argc > 1){
+		printf("Error: max of one argument");
+	}
+	else if(argc == 0)
+		chdir(getenv("HOME"));
+	else{
+		char my_cwd[1024];
+		getcwd(my_cwd, 1024);
+		char* input = strcat(my_cwd, argv[0]);
+		int retVal = chdir(input);
+		if(retVal== -1)
+			printf("Error: not able to change to directory specified.");
+		else{
+			getcwd(my_cwd, 1024);
+			printf("%s",my_cwd);
+		}
+	}
     return 0;
 }
 
