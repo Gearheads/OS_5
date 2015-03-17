@@ -8,11 +8,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 struct builtins {
-    char *name; /* name of function */
-    int (*f)(); /* function to execute for the built-in command */
+    char *name;               /* name of function */
+    int (*f)();               /* function to execute for the built-in command */
 };
+
+typedef struct commandnode {
+    char* com;                /* pointer to the command */
+    struct commandnode* next; /* pointer to the next command */
+}node;
+
+node *commands[50];           /* linked list of all the commands */
+char buffer[50];              /* buffer to read in the commands */
+int counter = 0;
 
 /**
  * cd [dirname]
@@ -26,23 +36,23 @@ struct builtins {
  *   reading the envrionment variable HOME via getenv("HOME").
  */
 int localcd(int argc, char **argv) {
-	if(argc > 1){
-		printf("Error: max of one argument");
+    if(argc > 1) {
+        printf("Error: max of one argument");
+    }
+    else if(argc == 0)
+        chdir(getenv("HOME"));
+    else {
+        char my_cwd[1024];
+	getcwd(my_cwd, 1024);
+	char* input = strcat(my_cwd, argv[0]);
+	int retVal = chdir(input);
+	if(retVal== -1)
+	    printf("Error: not able to change to directory specified.");
+	else {
+	    getcwd(my_cwd, 1024);
+	    printf("%s",my_cwd);
 	}
-	else if(argc == 0)
-		chdir(getenv("HOME"));
-	else{
-		char my_cwd[1024];
-		getcwd(my_cwd, 1024);
-		char* input = strcat(my_cwd, argv[0]);
-		int retVal = chdir(input);
-		if(retVal== -1)
-			printf("Error: not able to change to directory specified.");
-		else{
-			getcwd(my_cwd, 1024);
-			printf("%s",my_cwd);
-		}
-	}
+    }
     return 0;
 }
 
@@ -57,19 +67,134 @@ int localcd(int argc, char **argv) {
  *   even if the syntax is wrong.
  */
 void localexit(int argc, char **argv) {
-	if(argc<2){
-		exit(0);
-	}
-	else{
-		exit(atoi(argv[1]));	
-	}
+    if(argc < 2) {
+        exit(0);
+    }
+    else {
+        exit(atoi(argv[1]));	
+    }
+}
+
+/**
+ * insertNode inserts a new command found in the corresponding place in the command array
+ */
+void insertNode(int insert, node* new) {
+    int i = 0;
+    while(i < strlen(new->com)) {
+        if(new->com[i] != ' ') {
+            break;
+        }
+	i++;
+    }
+    if(i == strlen(new->com)) {
+        free(new->com);
+	free(new);
+	return;
+    }
+    node* temp = commands[insert];
+    // insert the first command
+    if(temp == NULL) {
+        commands[insert] = new;
+	commands[insert]->next = NULL;
+	return;
+    }
+    // add all other commands to the end
+    while(temp->next != NULL) {
+        temp = temp->next;
+    }
+    temp->next = new;
+    new->next = NULL;
+    return;
+}
+/**
+ * printList prints all the commands found in the given line
+ */
+void printList() {
+    node* temp;
+    int i = 0;
+    while(commands[i] != NULL && i < 50) {
+        printf("next command\n");
+        temp = commands[i];
+        while(temp != NULL) {
+            printf("%s\n",temp->com);
+	    temp = temp->next;
+        }
+	i++;
+    }
 }
 
 /**
  * Parses the command that was readin from the terminal
  */
-void parseCommand(char *line) {
-
+void parseCommand(char* line) {
+    int i;
+    for(i = 0; i < 50; i++) {
+        commands[i] = NULL;
+    }
+    char c;
+    int counter = 0;
+    int insert = 0;
+    int bufferCounter = 0;
+    int boolean = 0;
+    while(counter < strlen(line)) {
+        c = line[counter];
+	if(counter == strlen(line) - 1) {
+	    buffer[bufferCounter] = c;
+	    buffer[bufferCounter] = '\0';
+	    node* new = malloc(sizeof(node));
+            new->com = malloc(strlen(buffer)+1);
+            strcpy(new->com,buffer);
+            insertNode(insert,new);
+	    break;
+	}
+	if(boolean == 0) {
+	    if(c == '"') {
+	        boolean = 1;
+		counter++;
+		continue;
+	    }
+	}
+	if(boolean == 1) {
+            if(c == '"') {
+	        boolean = 0;
+		buffer[bufferCounter] = '\0';
+                node* new = malloc(sizeof(node));
+                new->com = malloc(strlen(buffer)+1);
+                strcpy(new->com,buffer);
+                insertNode(insert,new);
+		bufferCounter = 0;
+		counter++;	
+		continue;
+	    }
+	    buffer[bufferCounter] = c;
+	    counter++;
+            bufferCounter++;
+	    continue;
+	} 
+	if(c != ' ' && c != '|') {
+	    buffer[bufferCounter] = c;
+	    bufferCounter++;
+	}
+	else if(c == '|') {
+	    buffer[bufferCounter] = '\0';
+	    node* new = malloc(sizeof(node));
+ 	    new->com = malloc(strlen(buffer)+1);
+	    strcpy(new->com,buffer);
+	    insertNode(insert,new);
+            bufferCounter = 0;
+	    insert++;
+	}
+	else {
+	    buffer[bufferCounter] = '\0';
+	    node* new = malloc(sizeof(node));
+	    new->com = malloc(strlen(buffer)+1);
+            strcpy(new->com,buffer);
+            insertNode(insert,new);
+	    bufferCounter = 0;
+	}
+	counter++;
+    }
+    printList();
 }
 
 /**
