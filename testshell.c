@@ -279,7 +279,7 @@ void execCommand(node *nd) {
 	char *execArgs[] = { };
 	pid_t pid;
 	pid = fork();
-	
+	//TODO Need to add Pipe that way child can give back the output of its command to the parent
 	switch(pid) {
 		case 0:
 			// Child: run the command
