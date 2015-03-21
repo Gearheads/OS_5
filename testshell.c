@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 struct builtins {
     char *name;               /* name of function */
@@ -71,7 +73,16 @@ void localexit(int argc, char **argv) {
         exit(0);
     }
     else {
-        exit(atoi(argv[1]));	
+	long val = 0;
+	char *temp;
+	val = strtol(argv[1], &temp, 0);
+	if(*temp != '\0') {
+		// Bad argument functionality identical to Bash
+		printf("exit: %s: numeric argument required\n", argv[1]);
+		exit(255);
+	} else {
+        	exit(val);	
+	}
     }
 }
 
@@ -238,6 +249,13 @@ int startShell() {
         else {
             printf("the standard input is NOT to a terminal\n");
         }
+
+	// Wait for all child processes to complete
+	int status = 0;
+	while(wait(&status) != -1) {
+		printf("Command exited with status %d\n", status);
+	}
+	
         printf("$ ");
     }
     printf("\n");
