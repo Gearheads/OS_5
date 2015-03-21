@@ -12,9 +12,15 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+int localcd(int argc, char **argv);
+int localexit(int argc, char **argv);
+
+void runList();
+int countArgs();
+
 struct builtins {
-    char *name;               /* name of function */
-    int (*f)();               /* function to execute for the built-in command */
+    char *name;                      /* name of function */
+    int (*f)(int argc, char **argv); /* function to execute for the built-in command */
 };
 
 typedef struct commandnode {
@@ -25,6 +31,11 @@ typedef struct commandnode {
 node *commands[50];           /* linked list of all the commands */
 char buffer[50];              /* buffer to read in the commands */
 int counter = 0;
+
+static struct builtins builtin_functions[] = {
+	{ "cd", &localcd },
+	{ "exit", &localexit },
+};
 
 /**
  * cd [dirname]
@@ -68,7 +79,7 @@ int localcd(int argc, char **argv) {
  *   an error here since chances are that we really want to exit the process,
  *   even if the syntax is wrong.
  */
-void localexit(int argc, char **argv) {
+int localexit(int argc, char **argv) {
     if(argc < 2) {
         exit(0);
     }
@@ -84,6 +95,8 @@ void localexit(int argc, char **argv) {
         	exit(val);	
 	}
     }
+
+    return 0;
 }
 
 /**
@@ -116,22 +129,6 @@ void insertNode(int insert, node* new) {
     temp->next = new;
     new->next = NULL;
     return;
-}
-/**
- * printList prints all the commands found in the given line
- */
-void printList() {
-    node* temp;
-    int i = 0;
-    while(commands[i] != NULL && i < 50) {
-        printf("next command\n");
-        temp = commands[i];
-        while(temp != NULL) {
-            printf("%s\n",temp->com);
-	    temp = temp->next;
-        }
-	i++;
-    }
 }
 
 /**
@@ -238,22 +235,33 @@ int startShell() {
         parseCommand(line);
         if (isatty(0)) {
             fputs(line, stderr);
+	    #ifdef EBUG
             printf("the standard input is from a terminal\n");
+	    #endif
         } 
         else {
+	    #ifdef EBUG
             printf("the standard input is NOT from a terminal\n");
+	    #endif
         }
         if (isatty(1)) {
+	    #ifdef EBUG
             printf("the standard output is to a terminal\n");
+	    #endif
         }
         else {
+	    #ifdef EBUG
             printf("the standard input is NOT to a terminal\n");
+	    #endif
         }
+
+	runList();
 
 	// Wait for all child processes to complete
 	int status = 0;
-	while(wait(&status) != -1) {
-		printf("Command exited with status %d\n", status);
+	pid_t pid;
+	while((pid = wait(&status)) >= 0) {
+		printf("process %d exits with %d\n", pid, status);
 	}
 	
         printf("$ ");
@@ -261,6 +269,69 @@ int startShell() {
     printf("\n");
     return 0;
 }
+
+int countArgs(node nd) {
+
+}
+
+void execCommand(node *nd) {
+	// TODO generate execargs from nd
+	char *execArgs[] = { };
+	pid_t pid;
+	pid = fork();
+	
+	switch(pid) {
+		case 0:
+			// Child: run the command
+			execvp(nd->com, execArgs);
+			return;
+		case -1:
+			// Was a problem
+			printf("Fork failed\n");
+			break;
+		default:
+			// Parent: continue
+			break;
+	}
+}
+
+/**
+ * printList prints all the commands found in the given line
+ */
+void printList() {
+    node* temp;
+    int i = 0;
+    while(commands[i] != NULL && i < 50) {
+	#ifdef EBUG
+        printf("next command\n");
+	#endif
+        temp = commands[i];
+        while(temp != NULL) {
+	    #ifdef EBUG
+            printf("%s\n",temp->com);
+	    #endif
+	    temp = temp->next;
+        }
+	i++;
+    }
+}
+
+/**
+ * runList runs all the commands found in the given line
+ */
+void runList() {
+    node* temp;
+    int i = 0;
+    while(commands[i] != NULL && i < 50) {
+	#ifdef EBUG
+        printf("next command\n");
+	#endif
+        temp = commands[i];
+        execCommand(temp);
+	i++;
+    }
+}
+
 
 /**
  * Your assignment will be a simple shell that will run one command or a
