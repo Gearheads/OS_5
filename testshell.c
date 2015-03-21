@@ -15,6 +15,7 @@
 int localcd(int argc, char **argv);
 int localexit(int argc, char **argv);
 
+void printList();
 void runList();
 int countArgs();
 
@@ -32,6 +33,7 @@ node *commands[50];           /* linked list of all the commands */
 char buffer[50];              /* buffer to read in the commands */
 int counter = 0;
 
+static int builtin_functions_length = 2;
 static struct builtins builtin_functions[] = {
 	{ "cd", &localcd },
 	{ "exit", &localexit },
@@ -57,10 +59,11 @@ int localcd(int argc, char **argv) {
     else {
         char my_cwd[1024];
 	getcwd(my_cwd, 1024);
+	strcat(my_cwd, "/");
 	char* input = strcat(my_cwd, argv[0]);
 	int retVal = chdir(input);
 	if(retVal== -1)
-	    printf("Error: not able to change to directory specified.");
+	    printf("Error: not able to change to directory specified.\n");
 	else {
 	    getcwd(my_cwd, 1024);
 	    printf("%s",my_cwd);
@@ -270,16 +273,53 @@ int startShell() {
     return 0;
 }
 
-int countArgs(node nd) {
+int argCount(node *nd) {
+	int argCount = 0;
+	node *temp = nd->next;
+	while(temp != NULL) {
+		argCount++;
+		temp = temp->next;
+	}
 
+	return argCount;
+}
+
+char** makeArgArray(node *nd) {
+	char **argArray;
+	int curArg = 0;
+	node *temp = nd->next;
+
+	argArray = malloc(argCount(nd) * (sizeof( char*)));
+
+	while(temp != NULL) {
+		argArray[curArg] = temp->com;
+		curArg++;
+		temp = temp->next;
+	}
+
+	return argArray;
 }
 
 void execCommand(node *nd) {
-	// TODO generate execargs from nd
-	char *execArgs[] = { };
+	int i;
 	pid_t pid;
-	pid = fork();
+
+	char **execArgs = makeArgArray(nd);
+
+	// Check if this is one of the built in commands;
+	// Built-in commands do not fork to a new process
+	for(i = 0; i < builtin_functions_length; i++) {
+		if(strcmp(nd->com, builtin_functions[i].name) == 0) {
+			#ifdef EBUG
+			printf("Executing builtin command: " + nd->com);
+			#endif
+			builtin_functions[i].f(argCount(nd), execArgs);
+			return;
+		}
+	}
+
 	//TODO Need to add Pipe that way child can give back the output of its command to the parent
+	pid = fork();
 	switch(pid) {
 		case 0:
 			// Child: run the command
@@ -293,6 +333,8 @@ void execCommand(node *nd) {
 			// Parent: continue
 			break;
 	}
+
+	free(execArgs);
 }
 
 /**
