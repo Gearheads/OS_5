@@ -15,6 +15,7 @@
 int localcd(int argc, char **argv);
 int localexit(int argc, char **argv);
 
+void printPrompt();
 void printList();
 void runList();
 int countArgs();
@@ -53,20 +54,16 @@ static struct builtins builtin_functions[] = {
 int localcd(int argc, char **argv) {
     if(argc > 1) {
         printf("Error: max of one argument");
-    }
-    else if(argc == 0)
+    } else if(argc == 0) {
         chdir(getenv("HOME"));
-    else {
+    } else {
         char my_cwd[1024];
 	getcwd(my_cwd, 1024);
 	strcat(my_cwd, "/");
 	char* input = strcat(my_cwd, argv[0]);
 	int retVal = chdir(input);
-	if(retVal== -1)
+	if(retVal== -1) {
 	    printf("Error: not able to change to directory specified.\n");
-	else {
-	    getcwd(my_cwd, 1024);
-	    printf("%s",my_cwd);
 	}
     }
     return 0;
@@ -89,10 +86,10 @@ int localexit(int argc, char **argv) {
     else {
 	long val = 0;
 	char *temp;
-	val = strtol(argv[1], &temp, 0);
+	val = strtol(argv[0], &temp, 0);
 	if(*temp != '\0') {
 		// Bad argument functionality identical to Bash
-		printf("exit: %s: numeric argument required\n", argv[1]);
+		printf("exit: %s: numeric argument required\n", argv[0]);
 		exit(255);
 	} else {
         	exit(val);	
@@ -233,11 +230,12 @@ int startShell() {
     char *line = NULL;
     size_t size = 0;
     ssize_t read;
-    printf("$ ");
+
+    printPrompt();
+
     while((read = getline(&line, &size, stdin)) != -1) {
         parseCommand(line);
         if (isatty(0)) {
-            fputs(line, stderr);
 	    #ifdef EBUG
             printf("the standard input is from a terminal\n");
 	    #endif
@@ -267,16 +265,23 @@ int startShell() {
 		printf("process %d exits with %d\n", pid, status);
 	}
 	
-        printf("$ ");
+	printPrompt();
     }
     printf("\n");
     return 0;
 }
 
+void printPrompt() {
+	char my_cwd[1024];
+	getcwd(my_cwd, 1024);
+	printf("[%s]",my_cwd);
+	printf("$ ");
+}
+
 int argCount(node *nd) {
 	int argCount = 0;
 	node *temp = nd->next;
-	while(temp != NULL) {
+	while(temp != NULL && temp->com != NULL) {
 		argCount++;
 		temp = temp->next;
 	}
@@ -286,16 +291,22 @@ int argCount(node *nd) {
 
 char** makeArgArray(node *nd) {
 	char **argArray;
-	int curArg = 0;
+	int curArg = 1;
+	int numArgs = argCount(nd);
 	node *temp = nd->next;
 
-	argArray = malloc(argCount(nd) * (sizeof( char*)));
+	argArray = malloc((2 + numArgs) * (sizeof( char*)));
 
-	while(temp != NULL) {
+	argArray[0] = nd->com;
+
+	while(temp != NULL && temp->com != NULL) {
 		argArray[curArg] = temp->com;
 		curArg++;
 		temp = temp->next;
 	}
+
+	// NULL terminate for execvp
+	argArray[numArgs + 1] = NULL;
 
 	return argArray;
 }
@@ -334,7 +345,7 @@ void execCommand(node *nd) {
 			break;
 	}
 
-	free(execArgs);
+	//free(execArgs);
 }
 
 /**
