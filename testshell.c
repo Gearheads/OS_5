@@ -53,14 +53,14 @@ static struct builtins builtin_functions[] = {
  */
 int localcd(int argc, char **argv) {
     if(argc > 1) {
-        printf("Error: max of one argument");
+        printf("Error: max of one argument\n");
     } else if(argc == 0) {
         chdir(getenv("HOME"));
     } else {
         char my_cwd[1024];
 	getcwd(my_cwd, 1024);
 	strcat(my_cwd, "/");
-	char* input = strcat(my_cwd, argv[0]);
+	char* input = strcat(my_cwd, argv[1]);
 	int retVal = chdir(input);
 	if(retVal== -1) {
 	    printf("Error: not able to change to directory specified.\n");
@@ -322,7 +322,7 @@ void execCommand(node *nd) {
 	for(i = 0; i < builtin_functions_length; i++) {
 		if(strcmp(nd->com, builtin_functions[i].name) == 0) {
 			#ifdef EBUG
-			printf("Executing builtin command: " + nd->com);
+			printf("Executing builtin command: %s\n", nd->com);
 			#endif
 			builtin_functions[i].f(argCount(nd), execArgs);
 			return;
