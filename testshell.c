@@ -134,7 +134,7 @@ void insertNode(int insert, node* new) {
 /**
  * Parses the command that was readin from the terminal
  */
-void parseCommand(char* line) {
+int parseCommand(char* line) {
     int i;
     for(i = 0; i < 50; i++) {
         commands[i] = NULL;
@@ -161,6 +161,11 @@ void parseCommand(char* line) {
 		counter++;
 		continue;
 	    }
+	    else if(c == '\'') {
+	        boolean = 2;
+		counter++;
+		continue;
+	    }
 	}
 	if(boolean == 1) {
             if(c == '"') {
@@ -178,7 +183,24 @@ void parseCommand(char* line) {
 	    counter++;
             bufferCounter++;
 	    continue;
-	} 
+	}
+	if(boolean == 2) {
+            if(c == '\'') {
+	        boolean = 0;
+		buffer[bufferCounter] = '\0';
+                node* new = malloc(sizeof(node));
+                new->com = malloc(strlen(buffer)+1);
+                strcpy(new->com,buffer);
+                insertNode(insert,new);
+		bufferCounter = 0;
+		counter++;	
+		continue;
+	    }
+	    buffer[bufferCounter] = c;
+	    counter++;
+            bufferCounter++;
+	    continue;
+	}
 	if(c != ' ' && c != '|') {
 	    buffer[bufferCounter] = c;
 	    bufferCounter++;
@@ -202,7 +224,12 @@ void parseCommand(char* line) {
 	}
 	counter++;
     }
+    if(boolean != 0) {
+	printf("Error: mismatch quote\n");
+	return 1;
+    }
     printList();
+    return 0;
 }
 
 /**
@@ -235,7 +262,10 @@ void startShell() {
     if(give_prompt) printPrompt();
 
     while((read = getline(&line, &size, stdin)) != -1) {
-	parseCommand(line);
+	if(parseCommand(line) == 1) {
+	    if(give_prompt) printPrompt();
+	    continue;
+	}
             
 	runList();
 
