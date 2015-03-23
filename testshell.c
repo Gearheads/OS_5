@@ -369,11 +369,18 @@ void runList() {
     node* temp;
     int input = 0;
     int i = 0;
+    int saved_stdout;
     int fd[2];
     if(pipe(fd) == -1) {
         printf("Pipe failed\n");
         return;
     }
+
+
+    // In case we need to print an error message
+    // to STDOUT
+    saved_stdout = dup(1);
+
     while(commands[i] != NULL && i < 50) {
     	#ifdef EBUG
         printf("next command\n");
@@ -391,6 +398,12 @@ void runList() {
 				    dup2(fd[1], 1);
 				close(fd[0]);
 				execvp(temp->com, execArgs);
+
+				// If we get to this point, then execvp failed;
+				// restore STDOUT, print an error message
+				dup2(saved_stdout, 1);
+				printf("%s: command not found...\n", temp->com);
+				exit(1);
 				return;
 			case -1:
 				// Was a problem
