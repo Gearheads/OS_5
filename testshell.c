@@ -311,9 +311,9 @@ char** makeArgArray(node *nd) {
 	return argArray;
 }
 
-void execCommand(node *nd) {
+int execCommand(node *nd) {
 	int i;
-	pid_t pid;
+	// pid_t pid;
 
 	char **execArgs = makeArgArray(nd);
 
@@ -325,12 +325,12 @@ void execCommand(node *nd) {
 			printf("Executing builtin command: %s\n", nd->com);
 			#endif
 			builtin_functions[i].f(argCount(nd), execArgs);
-			return;
+			return 0;
 		}
 	}
-
+	return 1;
 	//TODO Need to add Pipe that way child can give back the output of its command to the parent
-	pid = fork();
+	/*pid = fork();
 	switch(pid) {
 		case 0:
 			// Child: run the command
@@ -343,7 +343,7 @@ void execCommand(node *nd) {
 		default:
 			// Parent: continue
 			break;
-	}
+	}*/
 
 	//free(execArgs);
 }
@@ -374,15 +374,51 @@ void printList() {
  */
 void runList() {
     node* temp;
+    int input = 0;
     int i = 0;
+    int fd[2];
+    if(pipe(fd) == -1) {
+        printf("Pipe failed\n");
+        return;
+    }
     while(commands[i] != NULL && i < 50) {
-	#ifdef EBUG
+    	#ifdef EBUG
         printf("next command\n");
 	#endif
-        temp = commands[i];
-        execCommand(temp);
+	temp = commands[i];
+	if(execCommand(temp) != 0) {
+		pid_t pid;
+	        char **execArgs = makeArgArray(temp);
+		pid = fork();
+		switch(pid) {
+			case 0:
+				// Child: run the command
+				dup2(input, 0);
+				if(commands[i + 1] != NULL)			
+				    dup2(fd[1], 1);
+				close(fd[0]);
+				execvp(temp->com, execArgs);
+				return;
+			case -1:
+				// Was a problem
+				printf("Fork failed\n");
+				break;
+			default:
+				// Parent: continue
+				close(fd[1]);
+				input = fd[0];
+				break;
+		}
+		//free(execArgs);
+		if(pipe(fd) == -1) {
+	        	printf("Pipe failed\n");
+	        	return;
+		}
+	}
 	i++;
     }
+    close(fd[1]);
+    close(fd[0]);
 }
 
 
