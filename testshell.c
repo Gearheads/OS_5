@@ -80,16 +80,16 @@ int localcd(int argc, char **argv) {
  *   even if the syntax is wrong.
  */
 int localexit(int argc, char **argv) {
-    if(argc < 2) {
+    if(argc < 1) {
         exit(0);
     }
     else {
 	long val = 0;
 	char *temp;
-	val = strtol(argv[0], &temp, 0);
+	val = strtol(argv[1], &temp, 0);
 	if(*temp != '\0') {
 		// Bad argument functionality identical to Bash
-		printf("exit: %s: numeric argument required\n", argv[0]);
+		printf("exit: %s: numeric argument required\n", argv[1]);
 		exit(255);
 	} else {
         	exit(val);	
@@ -294,7 +294,6 @@ char** makeArgArray(node *nd) {
 
 int execCommand(node *nd) {
 	int i;
-	// pid_t pid;
 
 	char **execArgs = makeArgArray(nd);
 
@@ -310,23 +309,6 @@ int execCommand(node *nd) {
 		}
 	}
 	return 1;
-	//TODO Need to add Pipe that way child can give back the output of its command to the parent
-	/*pid = fork();
-	switch(pid) {
-		case 0:
-			// Child: run the command
-			execvp(nd->com, execArgs);
-			return;
-		case -1:
-			// Was a problem
-			printf("Fork failed\n");
-			break;
-		default:
-			// Parent: continue
-			break;
-	}*/
-
-	//free(execArgs);
 }
 
 /**
@@ -390,7 +372,6 @@ void runList() {
 				input = fd[0];
 				break;
 		}
-		//free(execArgs);
 		if(pipe(fd) == -1) {
 	        	printf("Pipe failed\n");
 	        	return;
