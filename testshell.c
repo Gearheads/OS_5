@@ -226,36 +226,17 @@ void parseCommand(char* line) {
  * Neither of the built-in commands have to function in a
  * pipeline of commands.
  */
-int startShell() {
+void startShell() {
     char *line = NULL;
     size_t size = 0;
     ssize_t read;
+    int give_prompt = isatty(0);
 
-    printPrompt();
+    if(give_prompt) printPrompt();
 
     while((read = getline(&line, &size, stdin)) != -1) {
-        parseCommand(line);
-        if (isatty(0)) {
-	    #ifdef EBUG
-            printf("the standard input is from a terminal\n");
-	    #endif
-        } 
-        else {
-	    #ifdef EBUG
-            printf("the standard input is NOT from a terminal\n");
-	    #endif
-        }
-        if (isatty(1)) {
-	    #ifdef EBUG
-            printf("the standard output is to a terminal\n");
-	    #endif
-        }
-        else {
-	    #ifdef EBUG
-            printf("the standard input is NOT to a terminal\n");
-	    #endif
-        }
-
+	parseCommand(line);
+            
 	runList();
 
 	// Wait for all child processes to complete
@@ -265,10 +246,10 @@ int startShell() {
 		printf("process %d exits with %d\n", pid, status);
 	}
 	
-	printPrompt();
+	if(give_prompt) printPrompt();
     }
     printf("\n");
-    return 0;
+    return;
 }
 
 void printPrompt() {
